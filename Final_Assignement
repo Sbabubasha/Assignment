@@ -1,0 +1,95 @@
+def Project_list(url):
+    
+    response = requests.get(url)
+    html = response.text
+    soup = BeautifulSoup(html, 'html.parser')
+    records = []
+    table = soup.find('table')
+    for row in table.find_all('tr')[1:]: 
+         cols = row.find_all('td')
+         if len(cols) >= 8: 
+             record = {
+                 'S.No': cols[0].text.strip(),
+                 'Promoter Name': cols[1].text.strip(),
+                 'Project Name': cols[2].text.strip(),
+                 'RERA Reg.No.': cols[3].text.strip(),
+                 'ProjectType': cols[4].text.strip(),
+                 'District':cols[5].text.strip(),
+                 'StartDate': cols[6].text.strip(),
+                 'EndDate': cols[7].text.strip() ,
+                 'Details' : cols[8].find('a')['href'] if cols[8].find('a') else None
+             }
+             records.append(record)
+    try:
+        existing_data = pd.read_excel('project1_data.xlsx')
+    except FileNotFoundError:
+        existing_data = pd.DataFrame()
+    new_data = pd.DataFrame(records)
+    filtered_data = new_data[~new_data.duplicated()]
+    combined_data = pd.concat([existing_data, filtered_data], ignore_index=True)
+    combined_data.to_excel('project1.xlsx', index=False)
+
+if __name__ == "__main__":
+     url = 'https://www.up-rera.in/projects'
+    Project_list(url)
+
+
+def detailsfun(url):
+    x=[]
+    page=requests.get(url)
+    soup=BeautifulSoup(page.content,'html.parser')
+ 
+    quote_elements=soup.find('div',class_="col-lg-12 col-md-12 col-sm-12")
+    x+=quote_elements.text.strip().split('\n')
+    
+    return x
+       
+    
+def scrapefrom1(url):
+    response = requests.get(url)
+    html = response.text
+    soup = BeautifulSoup(html, 'html.parser')
+    records = []
+    table = soup.find('table')
+    for row in table.find_all('tr')[1:]:
+        cols = row.find_all('td')
+        record=[]
+        if len(cols) >= 1: 
+            record.append(cols[8].find('a')['href'] if cols[8].find('a') else None)
+        records.append(record)
+    n=[]
+    for i in records:
+        n.append(i)
+    return n
+url = 'https://www.up-rera.in/projects'
+a=scrapefrom1(url)
+n=[]
+for i in a:
+    for k in i:
+        n.append(detailsfun('https://www.up-rera.in/'+k))       
+p=[]
+for i in n:
+    for s in i:
+        if s!='':
+            if s!=' ':
+                p.append(s.strip())
+d={}
+for i in range(0,len(p)-1,2):
+    key=p[i]
+    Value=p[i+1]
+    d[key]=Value
+df = pd.DataFrame(d.items(), columns=['Key', 'Value'])
+excel_filename = 'project2_data.xlsx'
+df.to_excel(excel_filename, index=False)
+sheet1_df = pd.read_excel('project.xlsx')
+sheet2_df = pd.read_excel('project2_data.xlsx')
+combined_df = pd.concat([sheet1_df, sheet2_df], ignore_index=True)
+combined_df.to_excel('final_data.xlsx', index=False)
+x='final_data.xlsx'
+print(f"Data has been converted and saved to {x}")
+
+
+
+
+
+
